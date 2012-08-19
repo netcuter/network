@@ -1,1 +1,1 @@
-program bot sieciowy, ktory laczy sie do serwera, odbiera od niego polecenia, wykonuje odsylajac STDOUT
+Bot sieciowy, ktory co dany interwal czasowy probuje polaczyc sie z serwerem. Gdy sie polaczy, odbiera od serwera polecenia, ktore wykonuje w shellu odsylajac na biezaco STDOUT.

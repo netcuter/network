@@ -207,7 +207,7 @@ MenadzerZadan MZadan;
 	}
     void Agent::Pomoc()
     {
-		puts("Uzycie : Agent [-l nazwa_hosta] [-p port] [-w timeout ] [-v]");
+		puts("Uzycie : agent [-l nazwa_hosta] [-p port] [-w timeout ] [-v]");
 	}
 
 int main(int argc, char *argv[])

@@ -1,3 +1,4 @@
+// TODO : wielowątkowość, możliwość wysyłania na STDIN procesu np przez popen2(), zoptymalizować kod (pisany na szybko)
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -8,7 +9,7 @@
 #include <netdb.h>
 #include <vector>
 
-#define MAX_SIZE 50
+#define MAX_SIZE_POLECENIA 256
 
 using namespace std;
 
@@ -16,7 +17,7 @@ using namespace std;
     {
     public:
         int id;
-        char Polecenie[MAX_SIZE];
+        char Polecenie[MAX_SIZE_POLECENIA];
 
     };
 
@@ -42,16 +43,20 @@ using namespace std;
         int sock_descriptor;
         struct sockaddr_in serwer_addr;
         struct hostent *server;
-        char pakiet_od_serwera[MAX_SIZE];
-        char pakiet_do_serwera[MAX_SIZE];
+        char pakiet_od_serwera[MAX_SIZE_POLECENIA];
+        char pakiet_do_serwera[MAX_SIZE_POLECENIA];
     };
 
-    class Bot
+    class Agent
     {
     public:
         Polaczenie polaczenie;
         int WykonajZadanie(Zadanie * zadanie);
-
+		char nazwahosta[255];
+		unsigned int port;
+		unsigned int timeout;
+		bool debug_mode;
+		void Pomoc();
     };
 
 
@@ -65,7 +70,7 @@ MenadzerZadan MZadan;
         Zadanie zad;
         //zad.id=zadanie->id;
         zad.id=Zadania.size();
-        strcpy(zad.Polecenie,zadanie->Polecenie);
+        strncpy(zad.Polecenie,zadanie->Polecenie,MAX_SIZE_POLECENIA);
         Zadania.push_back(zad);
         return 1;
     }
@@ -76,7 +81,7 @@ MenadzerZadan MZadan;
         return 1;
     }
 
-    int Bot::WykonajZadanie(Zadanie *zadanie)
+    int Agent::WykonajZadanie(Zadanie *zadanie)
     {
         FILE *STDOUT_procesu;
                 char bufor [1035];
@@ -95,7 +100,7 @@ MenadzerZadan MZadan;
              polaczenie.Wyslij(bufor);
              printf(")");
          }
-         strcpy(bufor,"Wykonano ");
+         strncpy(bufor,"Wykonano ", MAX_SIZE_POLECENIA+10);
          strcat(bufor,zadanie->Polecenie);
          polaczenie.Wyslij(bufor);
          if(STDOUT_procesu)
@@ -125,7 +130,7 @@ MenadzerZadan MZadan;
         serwer_addr.sin_port = htons(port);
         if (connect(sock_descriptor, (struct sockaddr *)&serwer_addr, sizeof(serwer_addr)) < 0)
         {
-               printf("Polaczenie z serwerem nieudane, proba polaczenia ponownie\n");
+            printf("Polaczenie z serwerem nieudane, proba polaczenia ponownie\n");
             return 0;
         }
         else
@@ -150,8 +155,8 @@ MenadzerZadan MZadan;
 
     int Polaczenie::Odbieraj()
     {
-        int ile = read(sock_descriptor,pakiet_od_serwera,MAX_SIZE);
-        if(ile>0)
+        int ile = read(sock_descriptor,pakiet_od_serwera,MAX_SIZE_POLECENIA);
+        if(ile>0 && ile < MAX_SIZE_POLECENIA)
         {
                // int i = 0;
                 //for(; pakiet_od_serwera[i]!='\n' && i<= strlen(pakiet_od_serwera); ++i)
@@ -190,24 +195,117 @@ MenadzerZadan MZadan;
             else
                 return count;
     }
+    
+    void Agent::Pomoc()
+    {
+		puts("Uzycie : Agent [-l nazwa_hosta] [-p port] [-w timeout ] [-v]");
+	}
 
 int main(int argc, char *argv[])
 {
-   Bot * bot = new Bot;
+  Agent * agent = new Agent;
+  agent->timeout=5;
+  
+  if(argc<3)
+  {
+	agent->Pomoc();
+	return 1;
+  }
+  else
+  {
+   unsigned short int ilosc_argumentow_niezbednych=0;
+   for(int i=1; i<argc;++i)
+   {
+	   if(!strcmp(argv[i],"-l"))
+	   {
+		   i++;
+		   if(i>=argc)
+		   {
+			    agent->Pomoc();
+				puts("Brakuje argumentu dla opcji -l");
+				return 1;
+		   }
+		   else 
+		   {
+			   strncpy(agent->nazwahosta,argv[i],255);
+			   ilosc_argumentow_niezbednych++;
+		   }
+	   }
+	   else
+	   {
+		   if(!strcmp(argv[i],"-p"))
+		   {
+			   i++;
+			   if(i>=argc)
+			   {
+					agent->Pomoc();
+					puts("Brakuje argumentu dla opcji -p");
+					return 1;
+			   }
+			   else
+			   {
+					int port=atoi(argv[i]);
+					if( port>0 && port <=65535)
+					{
+						agent->port=port;
+						ilosc_argumentow_niezbednych++;
+					}
+					else
+					{
+						puts("Podano nieprawidlowy nr portu");
+						return 1;
+					}
+			   }	 
+		   }
+		   else
+				if(!strcmp(argv[i],"-w"))
+				{
+					i++;
+				    if(i>=argc)
+				    {
+					 	agent->Pomoc();
+						puts("Brakuje argumentu dla opcji -w");
+						return 1;
+				    }
+				    else
+				    {
+						int w=atoi(argv[i]);
+						if(w>0)
+							agent->timeout=w;
+						else
+						{
+							puts("Podano nieprawidlowa wartosc timeoutu");
+							return 1;
+						}
+					}
+				}
+				else
+					if(!strcmp(argv[i],"-v"))
+					{
+						agent->debug_mode=1;
+					}
+		
+	   }
+   }
+   
+   if(ilosc_argumentow_niezbednych>=2)
    while(1>0)
    {
-       if(bot->polaczenie.Polacz("localhost",7777))
+       if(agent->polaczenie.Polacz(agent->nazwahosta,agent->port))
        {
-           bot->polaczenie.Zaloguj();
-           while(bot->polaczenie.Polaczono)
+           agent->polaczenie.Zaloguj();
+           while(agent->polaczenie.Polaczono)
            {
-               if(bot->polaczenie.Odbieraj())
+               if(agent->polaczenie.Odbieraj())
                    if(MZadan.Zadania.size() > 0)
-                    bot->WykonajZadanie(&MZadan.Zadania[0]);
+                    agent->WykonajZadanie(&MZadan.Zadania[0]);
            }
        }
-       sleep(5);
+       sleep(agent->timeout);
    }
-   delete bot;
+   else agent->Pomoc();
+   
+  }
+  delete agent;
   return EXIT_SUCCESS;
 }

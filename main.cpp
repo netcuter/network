@@ -1,4 +1,4 @@
-// TODO : wielowątkowość, możliwość wysyłania na STDIN procesu np przez popen2(), zoptymalizować kod (pisany na szybko)
+// TODO : wielowątkowość, możliwość wysyłania na STDIN procesu, zoptymalizować kod (pisany na szybko)
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -39,17 +39,20 @@ using namespace std;
         int Odbieraj();
         int Wyslij(char *pakiet);
         bool Polaczono;
+        bool debug_mode;
     private :
         int sock_descriptor;
         struct sockaddr_in serwer_addr;
         struct hostent *server;
         char pakiet_od_serwera[MAX_SIZE_POLECENIA];
         char pakiet_do_serwera[MAX_SIZE_POLECENIA];
+        
     };
 
     class Agent
     {
     public:
+		Agent();
         Polaczenie polaczenie;
         int WykonajZadanie(Zadanie * zadanie);
 		char nazwahosta[255];
@@ -196,6 +199,12 @@ MenadzerZadan MZadan;
                 return count;
     }
     
+    Agent::Agent()
+    {
+		timeout=5;
+		debug_mode=0;
+		polaczenie.debug_mode=0;
+	}
     void Agent::Pomoc()
     {
 		puts("Uzycie : Agent [-l nazwa_hosta] [-p port] [-w timeout ] [-v]");
@@ -204,7 +213,6 @@ MenadzerZadan MZadan;
 int main(int argc, char *argv[])
 {
   Agent * agent = new Agent;
-  agent->timeout=5;
   
   if(argc<3)
   {
@@ -283,6 +291,7 @@ int main(int argc, char *argv[])
 					if(!strcmp(argv[i],"-v"))
 					{
 						agent->debug_mode=1;
+						agent->polaczenie.debug_mode=1;
 					}
 		
 	   }

@@ -10,19 +10,13 @@
 // <NAPRAWIONE>
     // wyłączyć lampp i spróbować połączyć się ze stroną na localhost, bo tam jest chyba błąd zliczania o jeden i robić requesty
     // kolejne typu localhost/blog/index.php?kategoria=aa, localhost/blog/index.php?kategoria=aawf
-    // tam jest chyba taka sytuacja ze jak sie nie uda polaczenie, to dany socket jest wykorzystywany ponownie
     // ale tez trzeba popatrzec, co zwraca QDebug
-    // wogóle tam jak klikam w kolejne odnośniki to czasem nie dodaje zapytań
 // <NAPRAWIONE/>
 
-// <NAPRAWIONE>
-    // trzeba zrobić żeby każdy socket mógł być tylko raz użyty a potem usunięty
-// <NAPRAWIONE/>
 
 //jak jest za dużo połączeń to jest błąd - trzeba by np sprawdzać ile max socketów można utworzyć w /proc
 //wprowadzić kodowanie - zrobione
 
-//GET /blog/index.php?kategoriP/1.10
 
 
 // PRYWATNE DO PRYWATNYCH
